@@ -5,37 +5,36 @@ Spot Health is a company that provides home health testing services for a variet
 
 ## Objective
 Based on the information provided by the company, out of a total of 9,881 tests, 8,840 were successful, 195 exceeded stability, 302 were hemolyzed, and 544 were QNS (quantity not sufficient). In light of this information, our goals moving forward might include the following to improve perspective successful test and result rate:
-<br> Descriptive Analysis
+<br> **Descriptive Analysis**
 <br /> - Data Visualization
-<br> Predictive Analysis
+<br> **Predictive Analysis**
 <br /> - Constructing Classification Model (Random Forest / Neural Network)
-<br> Prescriptive Analysis
+<br> **Prescriptive Analysis**
 <br /> - Understanding Customer Behaviors 
 <br /> - Pre-Acting and Providing targeted services
 
 ## Data Dictonary
-Demographics 
+**Demographics**
   <br /> - ID (Hash of Patient MRN)
   <br /> - Zipcode (Convert to Distance from Test Centers)
   <br /> - Age (Converted from DoB)
   <br /> - Sex
   
-Kit Information
+**Kit Information**
   <br /> - Type of Kit
   <br /> - Specimen Type
   <br /> - Client ID
   
-Behavioral Information
+**Behavioral Information**
   <br /> - Datetime Kit Received
   <br /> - Datetime Registered (When the Kit is Used)
   <br /> - Datetime Sample Sent in
   <br /> - Datetime Resulted
   
-Outcome Information
-  <br /> - Status
-    <br /> - Resulted
-   <br /> -  Partially Resulted
-   <br /> -  Failed (Not enough Blood / Hemolyzed / Exceeds Stability)
+**Outcome Information(Status)**
+  <br /> -  Resulted
+  <br /> -  Partially Resulted
+  <br /> -  Failed (Not enough Blood / Hemolyzed / Exceeds Stability)
     
     
     

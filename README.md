@@ -7,8 +7,14 @@ Spot Health is a company that provides home health testing services for a variet
 Based on the information provided by the company, out of a total of 9,881 tests, 8,840 were successful, 195 exceeded stability, 302 were hemolyzed, and 544 were QNS (quantity not sufficient). In light of this information, our goals moving forward might include the following to improve perspective successful test and result rate:
 <br> **Descriptive Analysis**
 <br /> - Data Visualization
+<br /> --- Demographic Information of SPOT Users
+<br /> --- Geographic Distribution of SPOT Users (Tableau)
+<br /> --- Analyzing Relationship between Status and Behavioral Inforamtion
 <br> **Predictive Analysis**
-<br /> - Constructing Classification Model (Random Forest / Neural Network)
+<br /> - Constructing Classification Model (Random Forest / Neural Network / KNN)
+<br /> --- Select most inportant Indicators
+<br /> --- Using AUC Curve and 3x3 confusion matrix to test accruary
+<br /> --- Comparing Accruacy among different models
 <br> **Prescriptive Analysis**
 <br /> - Understanding Customer Behaviors 
 <br /> - Pre-Acting and Providing targeted services

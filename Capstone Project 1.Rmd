@@ -1,0 +1,45 @@
+---
+title: "Capstone Project"
+author: "Roderick Fan"
+date: "2023-03-29"
+output: html_document
+---
+
+Clean Environment
+```{r}
+rm(list = ls())
+cat("\14")
+```
+
+Loading Packages, dataset
+```{r}
+library(tidyverse)
+library(here)
+
+spot <- read.csv(here("Spot Data.csv"))
+
+#Replace Patient ID with Rownames
+spot$Patient.ID <- rownames(spot$Patient.ID)
+
+#Binomial Sex
+spot$Patient.Sex <- as.factor(spot$Patient.Sex)
+spot$Ismale <- ifelse(spot$Patient.Sex == "M",1,0)
+
+#Dropping Redundant Predictors
+t(t(colnames(spot)))
+spot <- spot[,-c(4)]
+
+#Factoring Specimen Type
+spot$Specimen.Type <- as.factor(spot$Specimen.Type)
+
+#Factoring and Renaming Client Location
+spot$Client.ID <- as.factor(spot$Client.ID)
+levels(spot$Client.ID) <- c("Location A","Location B","Location C","Location D","Location E","Location F",
+                            "Location G","Location H","Location I","Location J","Location K","Location L",
+                            "Location M","Location N","Location O","Location P","Location Q","Location R")
+table(spot$Client.ID)
+
+table(spot$End.Status)
+
+```
+

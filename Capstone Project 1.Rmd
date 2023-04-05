@@ -15,6 +15,7 @@ Loading Packages, dataset
 ```{r}
 library(tidyverse)
 library(here)
+library(lubridate)
 
 spot <- read.csv(here("Spot Data.csv"))
 
@@ -39,7 +40,17 @@ levels(spot$Client.ID) <- c("Location A","Location B","Location C","Location D",
                             "Location M","Location N","Location O","Location P","Location Q","Location R")
 table(spot$Client.ID)
 
+#Convert and Simplify Datetime columns
+datetime_cols <- c("Datetime.Kit.Delivered", "Datetime.Kit.Registered", "Datetime.Sample.Sent.In", "Datetime.Sample.Received", "Datetime.of.End.Status")
+
+for (col in datetime_cols) {
+  spot[[col]] <- as.Date(substr(spot[[col]], 1, 10), format="%Y-%m-%d")
+}
+
 table(spot$End.Status)
 
 ```
+
+
+
 

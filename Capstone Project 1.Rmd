@@ -6,25 +6,22 @@ output: html_document
 ---
 
 Clean Environment
+Loading Packages, dataset
 ```{r}
 rm(list = ls())
 cat("\14")
-```
-
-Loading Packages, dataset
-```{r}
 library(tidyverse)
 library(here)
 library(lubridate)
-
 spot <- read.csv(here("Spot Data.csv"))
-
+```
+Preprocessing
+```{r}
 #Replace Patient ID with Rownames
 spot$Patient.ID <- rownames(spot$Patient.ID)
 
 #Binomial Sex
 spot$Patient.Sex <- as.factor(spot$Patient.Sex)
-spot$Ismale <- ifelse(spot$Patient.Sex == "M",1,0)
 
 #Dropping Redundant Predictors
 t(t(colnames(spot)))
@@ -48,7 +45,10 @@ for (col in datetime_cols) {
 }
 
 table(spot$End.Status)
-
+```
+```{r}
+spot.clean <- spot[!(spot$End.Status %in% c("collected", "collection_exception","delivered","delivery_exception","partially_resulted","received")),]
+reject <- subset(spot.clean, End.Status == "rejected")
 ```
 
 

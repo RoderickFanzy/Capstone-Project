@@ -26,7 +26,7 @@ spot$Patient.Sex <- as.factor(spot$Patient.Sex)
 
 #Dropping Redundant Predictors
 t(t(colnames(spot)))
-spot <- spot[,-c(4)]
+spot <- spot[,-c(5)]
 
 #Factoring Specimen Type
 spot$Specimen.Type <- as.factor(spot$Specimen.Type)
@@ -75,6 +75,11 @@ View(spot.clean)
 
 
 ```{r}
+
+
+
+
+
 
 ```
 

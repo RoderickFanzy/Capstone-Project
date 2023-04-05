@@ -15,10 +15,11 @@ library(here)
 library(lubridate)
 spot <- read.csv(here("Spot Data.csv"))
 ```
+
 Preprocessing
 ```{r}
-#Replace Patient ID with Rownames
-spot$Patient.ID <- rownames(spot$Patient.ID)
+#Rename Patient ID
+spot$Patient.ID <- as.numeric(factor(spot$Patient.ID, levels=unique(spot$Patient.ID)))
 
 #Binomial Sex
 spot$Patient.Sex <- as.factor(spot$Patient.Sex)
@@ -37,7 +38,7 @@ levels(spot$Client.ID) <- c("Location A","Location B","Location C","Location D",
                             "Location M","Location N","Location O","Location P","Location Q","Location R")
 table(spot$Client.ID)
 
-#Convert and Simplify Datetime columns
+#Convert and Simplify Datetime Columns
 datetime_cols <- c("Datetime.Kit.Delivered", "Datetime.Kit.Registered", "Datetime.Sample.Sent.In", "Datetime.Sample.Received", "Datetime.of.End.Status")
 
 for (col in datetime_cols) {
@@ -46,13 +47,13 @@ for (col in datetime_cols) {
 
 table(spot$End.Status)
 ```
+
+
 ```{r}
 spot.clean <- spot[!(spot$End.Status %in% c("collected", "collection_exception","delivered","delivery_exception","partially_resulted","received")),]
 reject <- subset(spot.clean, End.Status == "rejected")
-spot.clean$Deliever.Register <- as.numeric(difftime(spot.clean$Datetime.Kit.Registered, spot.clean$Datetime.Kit.Delivered,units = "day"))
-spot.clean$Deliever.Sent <- as.numeric(difftime(spot.clean$Datetime.Sample.Sent.In, spot.clean$Datetime.Kit.Registered,units = "day"))
-spot.clean$Sent.Receive <- as.numeric(difftime(spot.clean$Datetime.Sample.Received, spot.clean$Datetime.Sample.Sent.In,units = "day"))
-spot.clean$Receive.Result <- as.numeric(difftime(spot.clean$Datetime.of.End.Status, spot.clean$Datetime.Sample.Received,units = "day"))
+
+spot.clean$Deliver.Register <- as.numeric(difftime(spot.clean$Datetime.Kit.Registered, spot.clean$Datetime.Kit.Delivered,units = "day"))
 spot.clean$total.gap <-  as.numeric(difftime(spot.clean$Datetime.of.End.Status, spot.clean$Datetime.Kit.Delivered,units = "day"))
 
 test1 <- na.omit(spot.clean)
@@ -63,11 +64,21 @@ threshold <-  1.5*(IQR(test1$total.gap))
 outliers <- test1$total.gap < median(test1$total.gap) - threshold | test1$total.gap > median(test1$total.gap) + threshold
 test1.clean <- test1[!outliers,]
 
+View(spot)
+View(spot.clean)
+
+
 ```
+
+
+
 
 
 ```{r}
 
 ```
+
+
+
 
 

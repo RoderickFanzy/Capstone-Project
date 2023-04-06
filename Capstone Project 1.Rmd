@@ -24,7 +24,7 @@ spot$Patient.ID <- as.numeric(factor(spot$Patient.ID, levels=unique(spot$Patient
 #Binomial Sex
 spot$Patient.Sex <- as.factor(spot$Patient.Sex)
 
-#Dropping Redundant Predictors
+#Dropping Redundant Predictors   
 t(t(colnames(spot)))
 spot <- spot[,-c(5)]
 
@@ -50,15 +50,16 @@ table(spot$End.Status)
 
 
 ```{r}
-spot.clean <- spot[!(spot$End.Status %in% c("collected", "collection_exception","delivered","delivery_exception","partially_resulted","received")),]
+spot$time.gap <- as.numeric(difftime(spot$Datetime.of.End.Status, spot$Datetime.Sample.Sent.In,units = "day"))
+t(t(colnames(spot)))
+spot.clean <- spot[,-c(7,8,10)]
+spot.clean <- na.omit(spot.clean)
+spot.clean <- spot.clean[!(spot.clean$End.Status %in% c("collected", "collection_exception","delivered","delivery_exception","partially_resulted","received")),]
 reject <- subset(spot.clean, End.Status == "rejected")
 
-spot.clean$Deliver.Register <- as.numeric(difftime(spot.clean$Datetime.Kit.Registered, spot.clean$Datetime.Kit.Delivered,units = "day"))
-spot.clean$total.gap <-  as.numeric(difftime(spot.clean$Datetime.of.End.Status, spot.clean$Datetime.Kit.Delivered,units = "day"))
 
-test1 <- na.omit(spot.clean)
+hist(spot.clean$time.gap)
 
-summary(test1$total.gap)
 
 threshold <-  1.5*(IQR(test1$total.gap))
 outliers <- test1$total.gap < median(test1$total.gap) - threshold | test1$total.gap > median(test1$total.gap) + threshold
@@ -76,8 +77,9 @@ View(spot.clean)
 
 ```{r}
 
-
-
+timeseries <- as.data.frame(table(spot$Datetime.Kit.Delivered))
+timeseries.ts <- ts(data = timeseries$Freq, start = c(2021, 12), frequency = 365)
+plot(timeseries.ts)
 
 
 

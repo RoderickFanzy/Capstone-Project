@@ -70,21 +70,30 @@ spot.clean <- spot.clean[!outliers,]
 View(spot)
 View(spot.clean)
 
-test.rate <- spot %>%
+test.rate <- spot.clean%>%
   group_by(Specimen.Type) %>%
   summarize(Count = n(), resulted_rate = sum(End.Status == "resulted")/n())
 
 test.duration <- spot%>%
-  count(Patient.ID)
+  count(Patient.ID)%>%
+  na.omit()
 
-ggplot(data = test.duration)+
-  geom_histogram(aes(x = n, stat = "Identity"), binwidth = 0.5)+
-  xlim(0.5,5)+
+
+threshold.duration <-  1.5*(IQR(test.duration$n))
+outliers.duration <- test.duration$n < median(test.duration$n) - threshold.duration | test.duration$n > median(test.duration$n) + threshold.duration
+test.duration <- test.duration[!outliers,]
+
+test.duration$n <- as.factor(test.duration$n)
+
+ggplot(test.duration, aes(x = n)) +
+  geom_bar( alpha = 0.5, color = "black", fill = "cornflowerblue") +
+  geom_text(stat = "count", aes(label = ..count..), hjust = -0.5) +
   coord_flip()+
-  theme_classic()+
-  labs( x = "Number of Tests Patient Takes",
-        y = "Number of Patient",
-        title = "Count Plot for Patient Use Duration")
+  labs(x = "Number of tests taken", 
+       y = "Count",
+       title ="Distribution of number of tests taken by patients") +
+  theme_minimal()
+
 
 
 ggplot(test.rate, aes(x = reorder(Specimen.Type,Count), y = resulted_rate, fill = Specimen.Type)) +

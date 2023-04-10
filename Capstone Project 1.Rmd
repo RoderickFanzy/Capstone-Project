@@ -25,7 +25,6 @@ spot$Patient.ID <- as.numeric(factor(spot$Patient.ID, levels=unique(spot$Patient
 spot$Patient.Sex <- as.factor(spot$Patient.Sex)
 
 #Dropping Redundant Predictors   
-t(t(colnames(spot)))
 spot <- spot[,-c(5)]
 
 #Factoring Specimen Type
@@ -36,71 +35,78 @@ spot$Client.ID <- as.factor(spot$Client.ID)
 levels(spot$Client.ID) <- c("Location A","Location B","Location C","Location D","Location E","Location F",
                             "Location G","Location H","Location I","Location J","Location K","Location L",
                             "Location M","Location N","Location O","Location P","Location Q","Location R")
-table(spot$Client.ID)
+
 
 #Convert and Simplify Datetime Columns
 datetime_cols <- c("Datetime.Kit.Delivered", "Datetime.Kit.Registered", "Datetime.Sample.Sent.In", "Datetime.Sample.Received", "Datetime.of.End.Status")
-
 for (col in datetime_cols) {
   spot[[col]] <- as.Date(substr(spot[[col]], 1, 10), format="%Y-%m-%d")
 }
-
-table(spot$End.Status)
 ```
 
 
+Customer Age Distribution
+```{r}
+
+```
+
+
+Geographical Information of Kits Delivery
+```{r}
+# Tableau
+```
+
+
+calculate time gap and visualize the distribution of time gap
 ```{r}
 #Calculate Time Gap between Sent in and Resulted
 spot$time.gap <- as.numeric(difftime(spot$Datetime.of.End.Status, spot$Datetime.Sample.Sent.In,units = "day"))
 
-t(t(colnames(spot)))
 spot.clean <- spot[,-c(7,8,10)]
 spot.clean <- na.omit(spot.clean)
 spot.clean <- spot.clean[!(spot.clean$End.Status %in% c("collected", "collection_exception","delivered","delivery_exception","partially_resulted","received")),]
 reject <- subset(spot.clean, End.Status == "rejected")
 
-
-hist(spot.clean$time.gap)
-
-
 threshold <-  1.5*(IQR(spot.clean$time.gap))
 outliers <- spot.clean$time.gap < median(spot.clean$time.gap) - threshold | spot.clean$time.gap > median(spot.clean$time.gap) + threshold
 spot.clean <- spot.clean[!outliers,]
 
-View(spot)
-View(spot.clean)
 
+hist(spot.clean$time.gap)
+```
+Distribution of Number of Tests Taken by Patients
+```{r}
+test.duration <- spot%>%
+  count(Patient.ID) 
+
+test.duration$n <- as.factor(test.duration$n)
+test.duration <- test.duration[!is.na(test.duration$n),]
+
+ggplot(test.duration, aes(x = n)) +
+  geom_bar(alpha = 0.5, color = "black", fill = "cornflowerblue") +
+  geom_text(stat = "count", aes(label = after_stat(count)), hjust = -0.5) +
+  ylim(0,3500)+
+  coord_flip()+
+  labs(x = "Number of Tests Taken", 
+       y = "Count",
+       title ="Distribution of Number of Tests Taken by Patients") +
+  theme_minimal()
+
+
+```
+
+
+Visualization of Success Rate and Count by Specimen Type
+```{r}
 test.rate <- spot.clean%>%
   group_by(Specimen.Type) %>%
   summarize(Count = n(), resulted_rate = sum(End.Status == "resulted")/n())
 
-test.duration <- spot%>%
-  count(Patient.ID)%>%
-  na.omit()
-
-
-threshold.duration <-  1.5*(IQR(test.duration$n))
-outliers.duration <- test.duration$n < median(test.duration$n) - threshold.duration | test.duration$n > median(test.duration$n) + threshold.duration
-test.duration <- test.duration[!outliers,]
-
-test.duration$n <- as.factor(test.duration$n)
-
-ggplot(test.duration, aes(x = n)) +
-  geom_bar( alpha = 0.5, color = "black", fill = "cornflowerblue") +
-  geom_text(stat = "count", aes(label = ..count..), hjust = -0.5) +
-  coord_flip()+
-  labs(x = "Number of tests taken", 
-       y = "Count",
-       title ="Distribution of number of tests taken by patients") +
-  theme_minimal()
-
-
-
 ggplot(test.rate, aes(x = reorder(Specimen.Type,Count), y = resulted_rate, fill = Specimen.Type)) +
   geom_bar(aes(y = Count),stat = "identity", alpha = 0.5, width = 0.5) +
-  geom_text(aes(label = paste0(round(resulted_rate*100,2), "%"), y = Count + 1), 
+  geom_text(aes(label = paste0(Count, " / ",round(resulted_rate*100,2), "%"), y = Count + 1), 
             color = "black", fontface = "bold", size = 4, hjust = -0.1) +
-  labs(x = "", y = "Count / Success Rate", 
+  labs(x = "", y = "Test times (with Success Rate)", 
        title = "Success Rate and Count by Specimen Type") +
   scale_fill_discrete(name = "Specimen Type") +
   scale_y_continuous(sec.axis = sec_axis(~./max(test.rate$count), name = "Count"))+
@@ -110,19 +116,6 @@ ggplot(test.rate, aes(x = reorder(Specimen.Type,Count), y = resulted_rate, fill 
   theme(legend.position = "none")
 ```
 
-
-
-
-
-```{r}
-
-timeseries <- as.data.frame(table(spot$Datetime.Kit.Delivered))
-timeseries.ts <- ts(data = timeseries$Freq, start = c(2021, 12), frequency = 365)
-plot(timeseries.ts)
-
-
-
-```
 
 
 

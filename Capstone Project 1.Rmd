@@ -50,7 +50,9 @@ table(spot$End.Status)
 
 
 ```{r}
+#Calculate Time Gap between Sent in and Resulted
 spot$time.gap <- as.numeric(difftime(spot$Datetime.of.End.Status, spot$Datetime.Sample.Sent.In,units = "day"))
+
 t(t(colnames(spot)))
 spot.clean <- spot[,-c(7,8,10)]
 spot.clean <- na.omit(spot.clean)
@@ -61,14 +63,42 @@ reject <- subset(spot.clean, End.Status == "rejected")
 hist(spot.clean$time.gap)
 
 
-threshold <-  1.5*(IQR(test1$total.gap))
-outliers <- test1$total.gap < median(test1$total.gap) - threshold | test1$total.gap > median(test1$total.gap) + threshold
-test1.clean <- test1[!outliers,]
+threshold <-  1.5*(IQR(spot.clean$time.gap))
+outliers <- spot.clean$time.gap < median(spot.clean$time.gap) - threshold | spot.clean$time.gap > median(spot.clean$time.gap) + threshold
+spot.clean <- spot.clean[!outliers,]
 
 View(spot)
 View(spot.clean)
 
+test.rate <- spot %>%
+  group_by(Specimen.Type) %>%
+  summarize(Count = n(), resulted_rate = sum(End.Status == "resulted")/n())
 
+test.duration <- spot%>%
+  count(Patient.ID)
+
+ggplot(data = test.duration)+
+  geom_histogram(aes(x = n, stat = "Identity"), binwidth = 0.5)+
+  xlim(0.5,5)+
+  coord_flip()+
+  theme_classic()+
+  labs( x = "Number of Tests Patient Takes",
+        y = "Number of Patient",
+        title = "Count Plot for Patient Use Duration")
+
+
+ggplot(test.rate, aes(x = reorder(Specimen.Type,Count), y = resulted_rate, fill = Specimen.Type)) +
+  geom_bar(aes(y = Count),stat = "identity", alpha = 0.5, width = 0.5) +
+  geom_text(aes(label = paste0(round(resulted_rate*100,2), "%"), y = Count + 1), 
+            color = "black", fontface = "bold", size = 4, hjust = -0.1) +
+  labs(x = "", y = "Count / Success Rate", 
+       title = "Success Rate and Count by Specimen Type") +
+  scale_fill_discrete(name = "Specimen Type") +
+  scale_y_continuous(sec.axis = sec_axis(~./max(test.rate$count), name = "Count"))+
+  ylim(0,8000)+
+  coord_flip()+
+  theme_classic()+
+  theme(legend.position = "none")
 ```
 
 

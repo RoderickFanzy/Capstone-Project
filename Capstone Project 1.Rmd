@@ -84,7 +84,7 @@ ggplot(data = spot.clean)+
   theme_classic()
 ```
 
-calculate time gap and visualize the distribution of time gap
+visualize the Distribution of Number of Tests Taken by Patients
 ```{r}
 test.duration <- spot%>%
   count(Patient.ID) 
@@ -101,6 +101,7 @@ ggplot(test.duration, aes(x = n)) +
        y = "Count",
        title ="Distribution of Number of Tests Taken by Patients") +
   theme_classic()
+
 ```
 
 
@@ -128,12 +129,57 @@ ggplot(test.rate, aes(x = reorder(Specimen.Type,Count), y = resulted_rate, fill 
 
 
 
+Model Build: Random Forest
+```{r}
+
+library(randomForest)
+library(caret)
+
+# partition
+set.seed(1)
+
+spot.df <- spot.clean[,-c(2,7,8,10)]
+
+train.index <- sample(c(1:dim(spot.df)[1]), dim(spot.df)[1]*0.6)
+train <- spot.df[train.index,]
+valid <- spot.df[-train.index,]
+
+# classification tree
+#spot.ct <- rpart(End.Status ~., data = train, method="class")
+
+# plot tree
+#prp(spot.ct, type=1, extra=1, under=TRUE, split.font=1, varlen= -10)
+
+#spot.pred <- predict(spot.ct, valid, type="class")
+#confusionMatrix(spot.pred, as.factor(valid$End.Status))
+
+# random forest
+spot.rf <- randomForest(as.factor(End.Status) ~ ., data = spot.df, ntree = 500, mtry=4, nosize=5, importance=TRUE)
+```
+
+```{r}
+
+varImpPlot(spot.rf, type=1)
+
+```
+
+
+
+```{r}
+
+spot.rf.pred <- predict(spot.rf, valid)
+confusionMatrix(spot.rf.pred, as.factor(valid$End.Status))
+
+
+```
 
 ```{r}
 
 
-
-
-
 ```
+
+
+
+
+
 

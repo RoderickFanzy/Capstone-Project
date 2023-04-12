@@ -47,7 +47,13 @@ for (col in datetime_cols) {
 
 Customer Age Distribution
 ```{r}
-
+ggplot(spot, aes(x =spot$Patient.Age, fill = Patient.Sex)) +
+  geom_histogram(color = "black", alpha = 0.5, binwidth = 5) +
+  theme_classic()+
+  scale_x_continuous(breaks = seq(15, 90, by = 5))+
+  labs(title = "Age Distribution of Patients",
+       x = "Patient Age",
+       y = "Count")
 ```
 
 
@@ -72,8 +78,14 @@ outliers <- spot.clean$time.gap < median(spot.clean$time.gap) - threshold | spot
 spot.clean <- spot.clean[!outliers,]
 
 
-hist(spot.clean$time.gap)
+ggplot(data = spot.clean)+
+  geom_boxplot(aes(x = Patient.Sex, y = time.gap, fill = Patient.Sex), alpha = 0.5)+
+  coord_flip()+
+  theme_classic()
 ```
+
+
+
 Distribution of Number of Tests Taken by Patients
 ```{r}
 test.duration <- spot%>%
@@ -83,16 +95,14 @@ test.duration$n <- as.factor(test.duration$n)
 test.duration <- test.duration[!is.na(test.duration$n),]
 
 ggplot(test.duration, aes(x = n)) +
-  geom_bar(alpha = 0.5, color = "black", fill = "cornflowerblue") +
+  geom_bar(alpha = 0.5, color = "black", fill = "lightblue") +
   geom_text(stat = "count", aes(label = after_stat(count)), hjust = -0.5) +
   ylim(0,3500)+
   coord_flip()+
   labs(x = "Number of Tests Taken", 
        y = "Count",
        title ="Distribution of Number of Tests Taken by Patients") +
-  theme_minimal()
-
-
+  theme_classic()
 ```
 
 
@@ -114,6 +124,10 @@ ggplot(test.rate, aes(x = reorder(Specimen.Type,Count), y = resulted_rate, fill 
   coord_flip()+
   theme_classic()+
   theme(legend.position = "none")
+```
+test
+```{r}
+
 ```
 
 

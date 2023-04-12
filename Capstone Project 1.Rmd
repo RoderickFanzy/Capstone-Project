@@ -70,8 +70,8 @@ spot$time.gap <- as.numeric(difftime(spot$Datetime.of.End.Status, spot$Datetime.
 
 spot.clean <- spot[,-c(7,8,10)]
 spot.clean <- na.omit(spot.clean)
-spot.clean <- spot.clean[!(spot.clean$End.Status %in% c("collected", "collection_exception","delivered","delivery_exception","partially_resulted","received")),]
-reject <- subset(spot.clean, End.Status == "rejected")
+spot.clean$End.Status[spot.clean$End.Status == "partially_resulted"] <- "resulted"
+spot.clean$End.Status[spot.clean$End.Status %in% c("collected", "collection_exception","delivered","delivery_exception","received")] <- "rejected"
 
 threshold <-  1.5*(IQR(spot.clean$time.gap))
 outliers <- spot.clean$time.gap < median(spot.clean$time.gap) - threshold | spot.clean$time.gap > median(spot.clean$time.gap) + threshold
@@ -84,9 +84,7 @@ ggplot(data = spot.clean)+
   theme_classic()
 ```
 
-
-
-Distribution of Number of Tests Taken by Patients
+calculate time gap and visualize the distribution of time gap
 ```{r}
 test.duration <- spot%>%
   count(Patient.ID) 
@@ -124,14 +122,18 @@ ggplot(test.rate, aes(x = reorder(Specimen.Type,Count), y = resulted_rate, fill 
   coord_flip()+
   theme_classic()+
   theme(legend.position = "none")
+
 ```
-test
+
+
+
+
+
 ```{r}
 
+
+
+
+
 ```
-
-
-
-
-
 

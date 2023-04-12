@@ -66,22 +66,32 @@ Geographical Information of Kits Delivery
 calculate time gap and visualize the distribution of time gap
 ```{r}
 #Calculate Time Gap between Sent in and Resulted
-spot$time.gap <- as.numeric(difftime(spot$Datetime.of.End.Status, spot$Datetime.Sample.Sent.In,units = "day"))
+spot$time.gap1 <- as.numeric(difftime(spot$Datetime.Sample.Sent.In, spot$Datetime.Kit.Delivered,units = "day"))
+spot$time.gap2 <- as.numeric(difftime(spot$Datetime.of.End.Status, spot$Datetime.Sample.Sent.In,units = "day"))
+t(t(colnames(spot)))
 
-spot.clean <- spot[,-c(7,8,10)]
+spot.clean <- spot[,-c(7:11)]
 spot.clean <- na.omit(spot.clean)
 spot.clean$End.Status[spot.clean$End.Status == "partially_resulted"] <- "resulted"
 spot.clean$End.Status[spot.clean$End.Status %in% c("collected", "collection_exception","delivered","delivery_exception","received")] <- "rejected"
 
-threshold <-  1.5*(IQR(spot.clean$time.gap))
-outliers <- spot.clean$time.gap < median(spot.clean$time.gap) - threshold | spot.clean$time.gap > median(spot.clean$time.gap) + threshold
-spot.clean <- spot.clean[!outliers,]
+threshold.1 <-  1.5*(IQR(spot.clean$time.gap1))
+outliers.1 <- spot.clean$time.gap1 < median(spot.clean$time.gap1) - threshold.1 | spot.clean$time.gap1 > median(spot.clean$time.gap1) + threshold.1
+spot.gap.1 <- spot.clean[!outliers.1,]
 
+threshold.2 <-  1.5*(IQR(spot.clean$time.gap2))
+outliers.2 <- spot.clean$time.gap2 < median(spot.clean$time.gap2) - threshold.2 | spot.clean$time.gap2 > median(spot.clean$time.gap2) + threshold.2
+spot.gap.2 <- spot.clean[!outliers.2,]
 
-ggplot(data = spot.clean)+
-  geom_boxplot(aes(x = Patient.Sex, y = time.gap, fill = Patient.Sex), alpha = 0.5)+
-  coord_flip()+
-  theme_classic()
+box.gap.1 <- ggplot(data = spot.gap.1)+
+                geom_boxplot(aes(x = Patient.Sex, y = time.gap1, fill = Patient.Sex), alpha = 0.5)+
+                coord_flip()+
+                theme_classic()
+
+box.gap.2 <- ggplot(data = spot.gap.2)+
+                geom_boxplot(aes(x = Patient.Sex, y = time.gap2, fill = Patient.Sex), alpha = 0.5)+
+                coord_flip()+
+                theme_classic()
 ```
 
 visualize the Distribution of Number of Tests Taken by Patients
@@ -131,15 +141,14 @@ ggplot(test.rate, aes(x = reorder(Specimen.Type,Count), y = resulted_rate, fill 
 
 Model Build: Random Forest
 ```{r}
-
 library(randomForest)
 library(caret)
 
+
+t(t(colnames(spot.clean)))
 # partition
 set.seed(1)
-
-spot.df <- spot.clean[,-c(2,7,8,10)]
-
+spot.df <- spot.clean[,-c(1,2,8)]
 train.index <- sample(c(1:dim(spot.df)[1]), dim(spot.df)[1]*0.6)
 train <- spot.df[train.index,]
 valid <- spot.df[-train.index,]
@@ -154,24 +163,15 @@ valid <- spot.df[-train.index,]
 #confusionMatrix(spot.pred, as.factor(valid$End.Status))
 
 # random forest
-spot.rf <- randomForest(as.factor(End.Status) ~ ., data = spot.df, ntree = 500, mtry=4, nosize=5, importance=TRUE)
+spot.rf <- randomForest(as.factor(End.Status) ~ ., data = spot.df, ntree = 100, mtry=4, nosize=5, importance=TRUE)
 ```
 
 ```{r}
-
 varImpPlot(spot.rf, type=1)
-
-```
-
-
-
-```{r}
-
 spot.rf.pred <- predict(spot.rf, valid)
 confusionMatrix(spot.rf.pred, as.factor(valid$End.Status))
-
-
 ```
+
 
 ```{r}
 

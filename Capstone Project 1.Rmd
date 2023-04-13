@@ -13,6 +13,12 @@ cat("\14")
 library(tidyverse)
 library(here)
 library(lubridate)
+library(lme4)
+library(randomForest)
+library(caret)
+library(rpart)
+library(rpart.plot)
+library(car)
 spot <- read.csv(here("Spot Data.csv"))
 ```
 
@@ -141,41 +147,60 @@ ggplot(test.rate, aes(x = reorder(Specimen.Type,Count), y = resulted_rate, fill 
 
 Model Build: Random Forest
 ```{r}
-library(randomForest)
-library(caret)
-
-
+set.seed(111)
 t(t(colnames(spot.clean)))
 # partition
 set.seed(1)
-spot.df <- spot.clean[,-c(1,2,8)]
+spot.df <- spot.clean[,-c(2,8)]
 train.index <- sample(c(1:dim(spot.df)[1]), dim(spot.df)[1]*0.6)
 train <- spot.df[train.index,]
 valid <- spot.df[-train.index,]
 
-# classification tree
-#spot.ct <- rpart(End.Status ~., data = train, method="class")
-
-# plot tree
-#prp(spot.ct, type=1, extra=1, under=TRUE, split.font=1, varlen= -10)
-
-#spot.pred <- predict(spot.ct, valid, type="class")
-#confusionMatrix(spot.pred, as.factor(valid$End.Status))
-
 # random forest
 spot.rf <- randomForest(as.factor(End.Status) ~ ., data = spot.df, ntree = 100, mtry=4, nosize=5, importance=TRUE)
-```
 
-```{r}
 varImpPlot(spot.rf, type=1)
 spot.rf.pred <- predict(spot.rf, valid)
 confusionMatrix(spot.rf.pred, as.factor(valid$End.Status))
+
+```
+
+Decision Tree
+```{r}
+#Set Decision Tree Data set
+tree.df <- spot.clean
+tree.df$Patient.Sex <- ifelse(tree.df$Patient.Sex == "M",1,0)
+tree.df$End.Status <- ifelse(tree.df$End.Status == "resulted", 1, 0)
+
+#Turn Categorical Variable into Dummy Variable
+tree.dummy <- predict(dummyVars(~ Specimen.Type + Client.ID, tree.df), newdata = tree.df)
+tree.df <- tree.df[,-c(5,6)]
+tree.df <- cbind(tree.df,tree.dummy)
+
+model <- rpart(as.factor(End.Status) ~ . - Rejection.Reason - Patient.ID - Patient.Zip, data = tree.df)
+
+rpart.plot(model)
 ```
 
 
 ```{r}
+spot.df$End.Status <- ifelse(spot.df$End.Status == "resulted", 1, 0)
+cor(spot.df[,-c(3:5)])
 
+train.index.m <- sample(c(1:dim(spot.df)[1]), dim(spot.df)[1]*0.6)
+train.mix <- spot.df[train.index.m,]
+valid.mix <- spot.df[-train.index.m,]
 
+mixed.model <- glmer(End.Status ~   (1 | Specimen.Type)
+                                  +  time.gap1
+                                  +  time.gap2,
+                     data = train.mix,
+                     family = binomial())
+
+plot(mixed.model)
+test_predictions <- predict(mixed.model, newdata = valid.mix, type = "response")
+test_predictions_binary <- ifelse(test_predictions > 0.8, 1, 0)
+confusionMatrix(table(test_predictions_binary, valid.mix$End.Status), positive = "1")
 ```
 
 

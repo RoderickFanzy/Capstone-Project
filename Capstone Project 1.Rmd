@@ -151,7 +151,7 @@ set.seed(111)
 t(t(colnames(spot.clean)))
 # partition
 set.seed(1)
-spot.df <- spot.clean[,-c(2,8)]
+spot.df <- spot.clean[,-c(1,2,8,10)]
 train.index <- sample(c(1:dim(spot.df)[1]), dim(spot.df)[1]*0.6)
 train <- spot.df[train.index,]
 valid <- spot.df[-train.index,]
@@ -161,7 +161,7 @@ spot.rf <- randomForest(as.factor(End.Status) ~ ., data = spot.df, ntree = 100, 
 
 varImpPlot(spot.rf, type=1)
 spot.rf.pred <- predict(spot.rf, valid)
-confusionMatrix(spot.rf.pred, as.factor(valid$End.Status))
+confusionMatrix(spot.rf.pred, as.factor(valid$End.Status), positive = "resulted")
 
 ```
 

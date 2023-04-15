@@ -19,6 +19,7 @@ library(caret)
 library(rpart)
 library(rpart.plot)
 library(car)
+library(e1071)
 spot <- read.csv(here("Spot Data.csv"))
 ```
 
@@ -165,35 +166,54 @@ confusionMatrix(spot.rf.pred, as.factor(valid$End.Status), positive = "resulted"
 
 ```
 
-Decision Tree
+Naive Bayes
 ```{r}
-#Set Decision Tree Data set
-tree.df <- spot.clean
-tree.df$Patient.Sex <- ifelse(tree.df$Patient.Sex == "M",1,0)
-tree.df$End.Status <- ifelse(tree.df$End.Status == "resulted", 1, 0)
+#Set Naive Bayes Data set
+naive.df <- spot.clean
+naive.df$Patient.Sex <- ifelse(naive.df$Patient.Sex == "M",1,0)
+naive.df$End.Status <- ifelse(naive.df$End.Status == "resulted", 1, 0)
 
-#Turn Categorical Variable into Dummy Variable
-tree.dummy <- predict(dummyVars(~ Specimen.Type + Client.ID, tree.df), newdata = tree.df)
-tree.df <- tree.df[,-c(5,6)]
-tree.df <- cbind(tree.df,tree.dummy)
+naive.index <- sample(c(1:dim(naive.df)[1]), dim(naive.df)[1]*0.6)
+naive.train <- naive.df[naive.index,]
+naive.valid <- naive.df[-naive.index,]
 
-model <- rpart(as.factor(End.Status) ~ . - Rejection.Reason - Patient.ID - Patient.Zip, data = tree.df)
 
-rpart.plot(model)
+model1 <- naiveBayes(End.Status ~ ., data = naive.train)
+model2 <- naiveBayes(End.Status ~ . - Patient.ID - time.gap2, data = naive.train)
+model3 <- naiveBayes(End.Status ~ . - Patient.ID - time.gap2 - Patient.Zip, data = naive.train)
+model4 <- naiveBayes(End.Status ~ . - Patient.ID - time.gap2 - Patient.Zip - Rejection.Reason, data = naive.train)
+
+predictions1 <- predict(model1, naive.valid)
+predictions2 <- predict(model2, naive.valid)
+predictions3 <- predict(model3, naive.valid)
+predictions4 <- predict(model4, naive.valid)
+
+CM1 <- confusionMatrix(table(predictions1, naive.valid$End.Status), positive = "1")
+CM2 <- confusionMatrix(table(predictions2, naive.valid$End.Status), positive = "1")
+CM3 <- confusionMatrix(table(predictions3, naive.valid$End.Status), positive = "1")
+CM4 <- confusionMatrix(table(predictions4, naive.valid$End.Status), positive = "1")
+
+CM1
+CM2
+CM3
+CM4
+
+#Rejection Reason is a key indicator
 ```
 
 
+
+Multilevel Logistic Regression Model
 ```{r}
 spot.df$End.Status <- ifelse(spot.df$End.Status == "resulted", 1, 0)
-cor(spot.df[,-c(3:5)])
+
 
 train.index.m <- sample(c(1:dim(spot.df)[1]), dim(spot.df)[1]*0.6)
 train.mix <- spot.df[train.index.m,]
 valid.mix <- spot.df[-train.index.m,]
 
 mixed.model <- glmer(End.Status ~   (1 | Specimen.Type)
-                                  +  time.gap1
-                                  +  time.gap2,
+                                  +  time.gap1,
                      data = train.mix,
                      family = binomial())
 

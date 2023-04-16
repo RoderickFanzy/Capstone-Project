@@ -12,6 +12,7 @@ rm(list = ls())
 cat("\14")
 library(tidyverse)
 library(here)
+library(party)
 library(lubridate)
 library(lme4)
 library(randomForest)
@@ -155,13 +156,18 @@ set.seed(111)
 t(t(colnames(spot.clean)))
 # partition
 set.seed(1)
-spot.df <- spot.clean[,-c(2,8,10)]
+spot.df <- spot.clean[,-c(2,6,8)]
 train.index <- sample(c(1:dim(spot.df)[1]), dim(spot.df)[1]*0.6)
 train <- spot.df[train.index,]
 valid <- spot.df[-train.index,]
 
 # random forest
-spot.rf <- randomForest(as.factor(End.Status) ~ ., data = spot.df, ntree = 100, mtry=4, nosize=5, importance=TRUE)
+spot.rf <- randomForest(as.factor(End.Status) ~ ., data = spot.df, ntree = 500, mtry=4, nosize=5, importance=TRUE)
+
+
+x <- ctree(as.factor(End.Status) ~ Patient.Sex + Patient.Age + Specimen.Type + time.gap1 + time.gap2, data = spot.df)
+
+plot(x)
 
 varImpPlot(spot.rf, type=1)
 spot.rf.pred <- predict(spot.rf, valid)
@@ -226,6 +232,13 @@ test_predictions <- predict(mixed.model,valid.mix)
 test_predictions_binary <- ifelse(test_predictions > 0.6, 1, 0)
 confusionMatrix(table(test_predictions_binary, valid.mix$End.Status), positive = "1")
 ```
+
+
+```{r}
+
+
+```
+
 
 
 

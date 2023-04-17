@@ -44,7 +44,7 @@ levels(spot$Client.ID) <- c("Location A","Location B","Location C","Location D",
                             "Location G","Location H","Location I","Location J","Location K","Location L",
                             "Location M","Location N","Location O","Location P","Location Q","Location R")
 
-
+table(spot$Client.ID)
 #Convert and Simplify Datetime Columns
 datetime_cols <- c("Datetime.Kit.Delivered", "Datetime.Kit.Registered", "Datetime.Sample.Sent.In", "Datetime.Sample.Received", "Datetime.of.End.Status")
 for (col in datetime_cols) {
@@ -215,29 +215,26 @@ CM4
 Multilevel Logistic Regression Model
 ```{r}
 spot.mix <- spot.clean[,c(1,3,4,5,6,7,9,10)]
+spot.mix$Patient.ID <- as.factor(spot.mix$Patient.ID)
 spot.mix$End.Status <- ifelse(spot.mix$End.Status == "resulted", 1, 0)
+
+
 train.index.m <- sample(c(1:dim(spot.df)[1]), dim(spot.df)[1]*0.6)
 train.mix <- spot.mix[train.index.m,]
 valid.mix <- spot.mix[-train.index.m,]
 
-mixed.model <- glmer(End.Status ~ (1 | Specimen.Type)
+mixed.model <- glmer(as.factor(End.Status) ~ (1 | Specimen.Type)
                                   +  time.gap1
-                                  +  Patient.Sex
-                                  +  Patient.Age,
+                                  +  time.gap2,
                      data = train.mix,
-                     family = "binomial")
+                     family = binomial())
 
 plot(mixed.model)
 test_predictions <- predict(mixed.model,valid.mix)
-test_predictions_binary <- ifelse(test_predictions > 0.6, 1, 0)
+test_predictions_binary <- ifelse(test_predictions > 1.4, 1, 0)
 confusionMatrix(table(test_predictions_binary, valid.mix$End.Status), positive = "1")
 ```
 
-
-```{r}
-
-
-```
 
 
 

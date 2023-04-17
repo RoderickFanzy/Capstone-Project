@@ -208,6 +208,35 @@ CM3
 CM4
 
 #Rejection Reason is a key indicator
+library(pROC)
+
+
+roc1 <- roc(predictions1, naive.valid$End.Status, levels = c(0,1))
+roc2 <- roc(predictions2, naive.valid$End.Status, levels = c(0,1))
+roc3 <- roc(predictions3, naive.valid$End.Status, levels = c(0,1))
+roc4 <- roc(predictions4, naive.valid$End.Status, levels = c(0,1))
+
+
+plot(roc1, col = "red", main = "ROC Curves for Naive Bayes Models")
+lines(roc2, col = "blue")
+lines(roc3, col = "green")
+lines(roc4, col = "purple")
+
+
+legend("bottomright", c("Model 1", "Model 2", "Model 3", "Model 4"), col = c("red", "blue", "green", "purple"), lty = 1)
+
+
+auc1 <- round(auc(roc1), 3)
+auc2 <- round(auc(roc2), 3)
+auc3 <- round(auc(roc3), 3)
+auc4 <- round(auc(roc4), 3)
+
+
+cat("AUC for Model 1: ", auc1, "\n")
+cat("AUC for Model 2: ", auc2, "\n")
+cat("AUC for Model 3: ", auc3, "\n")
+cat("AUC for Model 4: ", auc4, "\n")
+
 ```
 
 

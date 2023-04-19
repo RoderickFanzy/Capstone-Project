@@ -33,6 +33,7 @@ spot$Patient.ID <- as.numeric(factor(spot$Patient.ID, levels=unique(spot$Patient
 #Binomial Sex
 spot$Patient.Sex <- as.factor(spot$Patient.Sex)
 
+
 #Dropping Redundant Predictors   
 spot <- spot[,-c(5)]
 
@@ -162,6 +163,35 @@ ggplot(test.rate, aes(x = reorder(Specimen.Type,Count), y = resulted_rate, fill 
 ```
 
 
+Visualization of Success rate and Count by Client.ID
+```{r}
+
+test.rate <- spot.clean%>%
+  group_by(Client.ID) %>%
+  summarize(Count = n(), resulted_rate = sum(End.Status == "resulted")/n())
+
+ggplot(test.rate, aes(x = reorder(Client.ID,resulted_rate), y = resulted_rate, fill = Client.ID)) +
+  geom_bar(aes(y = Count),stat = "identity", alpha = 0.5, width = 0.5) +
+  geom_text(aes(label = paste0(Count, " / ",round(resulted_rate*100,2), "%"), y = Count + 1), 
+            color = "black", fontface = "bold", size = 4, hjust = -0.1) +
+  labs(x = "", y = "Test times (with Success Rate)", 
+       title = "Success Rate and Count by Client ID") +
+  scale_fill_discrete(name = "Client ID") +
+  scale_y_continuous(sec.axis = sec_axis(~./max(test.rate$count), name = "Count"))+
+  ylim(0,8000)+
+  coord_flip()+
+  theme_classic()+
+  theme(legend.position = "none")
+
+
+
+
+
+
+
+```
+
+
 
 
 Model Build: Random Forest
@@ -188,6 +218,7 @@ spot.rf.pred <- predict(spot.rf, valid)
 confusionMatrix(spot.rf.pred, as.factor(valid$End.Status), positive = "resulted")
 
 ```
+
 
 Naive Bayes
 ```{r}
@@ -220,8 +251,12 @@ CM1
 CM2
 CM3
 CM4
+```
 
+
+```{r}
 #Rejection Reason is a key indicator
+
 library(pROC)
 
 
@@ -251,6 +286,8 @@ cat("AUC for Model 2: ", auc2, "\n")
 cat("AUC for Model 3: ", auc3, "\n")
 cat("AUC for Model 4: ", auc4, "\n")
 
+
+
 ```
 
 
@@ -279,6 +316,8 @@ test_predictions <- predict(mixed.model,valid.mix,type = "response")
 test_predictions_binary <- ifelse(test_predictions > 0.85, 1, 0)
 confusionMatrix(table(test_predictions_binary, valid.mix$End.Status), positive = "1")
 ```
+
+
 
 
 

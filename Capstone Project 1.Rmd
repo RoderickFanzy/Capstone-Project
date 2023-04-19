@@ -176,7 +176,7 @@ train <- spot.df[train.index,]
 valid <- spot.df[-train.index,]
 
 # random forest
-spot.rf <- randomForest(as.factor(End.Status) ~ ., data = spot.df, ntree = 500, mtry=4, nosize=5, importance=TRUE)
+spot.rf <- randomForest(as.factor(End.Status) ~ ., data = spot.df, ntree = 200, mtry=4, nosize=5, importance=TRUE)
 
 
 x <- ctree(as.factor(End.Status) ~ Patient.Sex + Patient.Age + Specimen.Type + time.gap1 + time.gap2, data = spot.df)
@@ -266,15 +266,17 @@ train.index.m <- sample(c(1:dim(spot.df)[1]), dim(spot.df)[1]*0.6)
 train.mix <- spot.mix[train.index.m,]
 valid.mix <- spot.mix[-train.index.m,]
 
-mixed.model <- glmer(as.factor(End.Status) ~ (1 | Specimen.Type)
+mixed.model <- glm(End.Status ~  as.factor(Specimen.Type)
                                   +  time.gap1
-                                  +  time.gap2,
+                                  +  time.gap2
+                                  +  Patient.Sex
+                                  +  Patient.Age,
                      data = train.mix,
-                     family = binomial())
+                     family = binomial)
 
 plot(mixed.model)
-test_predictions <- predict(mixed.model,valid.mix)
-test_predictions_binary <- ifelse(test_predictions > 1.4, 1, 0)
+test_predictions <- predict(mixed.model,valid.mix,type = "response")
+test_predictions_binary <- ifelse(test_predictions > 0.85, 1, 0)
 confusionMatrix(table(test_predictions_binary, valid.mix$End.Status), positive = "1")
 ```
 

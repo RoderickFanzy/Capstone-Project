@@ -339,7 +339,34 @@ confusionMatrix(table(test_predictions_binary, valid.mix$End.Status), positive =
 ```
 
 
+```{r}
+logit1 <- glm(as.factor(End.Status) ~ time.gap2+time.gap3, data = spot.df, family = "binomial")
+summary(logit1)
+```
 
+```{r}
+spot.km <- subset(spot, End.Status == "rejected")
+spot.km$Rejection.Reason[spot.km$Rejection.Reason == ""] <- "No Reason"
+spot.km$Rejection.Reason[spot.km$Rejection.Reason == "qns\\"] <- "qns"
+
+
+spot.km <- spot.km[,-c(7:11)]
+spot.km$time.gap1[is.na(spot.km$time.gap1)] <- mean(spot.km$time.gap1, na.rm = TRUE)
+spot.km$time.gap2[is.na(spot.km$time.gap2)] <- mean(spot.km$time.gap2, na.rm = TRUE)
+
+table(spot.km$Rejection.Reason)
+
+
+
+rej_reason_freq <- as.data.frame(table(spot.km$Rejection.Reason))
+colnames(rej_reason_freq) <- c("Reject Reason","Count")
+
+ggplot(rej_reason_freq, aes(x = reorder(`Reject Reason`,Count), y = Count, fill = `Reject Reason`)) + 
+  geom_bar(stat = "identity", alpha = 0.5) +
+  labs(x = "Rejection Reason", y = "Count") +
+  theme_classic()+
+  coord_flip()
+```
 
 
 

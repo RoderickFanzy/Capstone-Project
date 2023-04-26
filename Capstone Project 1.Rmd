@@ -23,7 +23,10 @@ library(car)
 library(e1071)
 library(sqldf)
 spot <- read.csv(here("Spot Data.csv"))
+View(spot)
 ```
+
+
 
 Preprocessing
 ```{r}
@@ -36,6 +39,7 @@ spot$Patient.Sex <- as.factor(spot$Patient.Sex)
 
 #Dropping Redundant Predictors   
 spot <- spot[,-c(5)]
+View(spot)
 
 #Factoring Specimen Type
 spot$Specimen.Type <- as.factor(spot$Specimen.Type)
@@ -52,10 +56,15 @@ datetime_cols <- c("Datetime.Kit.Delivered", "Datetime.Kit.Registered", "Datetim
 for (col in datetime_cols) {
   spot[[col]] <- as.Date(substr(spot[[col]], 1, 10), format="%Y-%m-%d")
 }
+```
+
+
+```{r}
 
 #Calculate Time Gap between Sent in and Resulted
 spot$time.gap1 <- as.numeric(difftime(spot$Datetime.Sample.Sent.In, spot$Datetime.Kit.Delivered,units = "day"))
-spot$time.gap2 <- as.numeric(difftime(spot$Datetime.of.End.Status, spot$Datetime.Sample.Sent.In,units = "day"))
+spot$time.gap2 <- as.numeric(difftime(spot$Datetime.Sample.Received, spot$Datetime.Sample.Sent.In,units = "day"))
+spot$time.gap3 <- as.numeric(difftime(spot$Datetime.of.End.Status, spot$Datetime.Sample.Received,units = "day"))
 
 #spot.clean <- spot[,-c(7:11)]
 #spot.clean <- na.omit(spot.clean)
@@ -67,7 +76,8 @@ test.rate <- spot%>%
   summarise(Count = n(),
             resulted_rate = sum(End.Status == "resulted")/n(),
             gap1 = mean(time.gap1,na.rm = T),
-            gap2 = mean(time.gap2,na.rm = T))
+            gap2 = mean(time.gap2,na.rm = T),
+            gap3 = mean(time.gap3,na.rm = T))
 
 
 ```
@@ -106,6 +116,10 @@ threshold.2 <-  1.5*(IQR(spot.clean$time.gap2))
 outliers.2 <- spot.clean$time.gap2 < median(spot.clean$time.gap2) - threshold.2 | spot.clean$time.gap2 > median(spot.clean$time.gap2) + threshold.2
 spot.gap.2 <- spot.clean[!outliers.2,]
 
+threshold.3 <-  1.5*(IQR(spot.clean$time.gap3))
+outliers.3 <- spot.clean$time.gap3 < median(spot.clean$time.gap3) - threshold.3 | spot.clean$time.gap3 > median(spot.clean$time.gap3) + threshold.3
+spot.gap.3 <- spot.clean[!outliers.3,]
+
 box.gap.1 <- ggplot(data = spot.gap.1)+
                 geom_boxplot(aes(x = Patient.Sex, y = time.gap1, fill = Patient.Sex), alpha = 0.5)+
                 coord_flip()+
@@ -116,9 +130,20 @@ box.gap.2 <- ggplot(data = spot.gap.2)+
                 coord_flip()+
                 theme_classic()
 
+box.gap.3 <- ggplot(data = spot.gap.3)+
+                geom_boxplot(aes(x = Patient.Sex, y = time.gap3, fill = Patient.Sex), alpha = 0.5)+
+                coord_flip()+
+                theme_classic()
+
+
+
 box.gap.1
 box.gap.2
+box.gap.3
+
 ```
+
+
 
 visualize the Distribution of Number of Tests Taken by Patients
 ```{r}
@@ -184,11 +209,6 @@ ggplot(test.rate, aes(x = reorder(Client.ID,resulted_rate), y = resulted_rate, f
   theme(legend.position = "none")
 
 
-
-
-
-
-
 ```
 
 
@@ -198,6 +218,7 @@ Model Build: Random Forest
 ```{r}
 set.seed(111)
 t(t(colnames(spot.clean)))
+
 # partition
 set.seed(1)
 spot.df <- spot.clean[,-c(2,6,8)]
@@ -209,7 +230,7 @@ valid <- spot.df[-train.index,]
 spot.rf <- randomForest(as.factor(End.Status) ~ ., data = spot.df, ntree = 200, mtry=4, nosize=5, importance=TRUE)
 
 
-x <- ctree(as.factor(End.Status) ~ Patient.Sex + Patient.Age + Specimen.Type + time.gap1 + time.gap2, data = spot.df)
+x <- ctree(as.factor(End.Status) ~ Patient.Sex + Patient.Age + Specimen.Type + time.gap1 + time.gap2 + time.gap3, data = spot.df)
 
 plot(x)
 

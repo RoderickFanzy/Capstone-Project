@@ -22,8 +22,8 @@ library(rpart.plot)
 library(car)
 library(e1071)
 library(sqldf)
+library(ROSE)
 spot <- read.csv(here("Spot Data.csv"))
-View(spot)
 ```
 
 
@@ -39,7 +39,6 @@ spot$Patient.Sex <- as.factor(spot$Patient.Sex)
 
 #Dropping Redundant Predictors   
 spot <- spot[,-c(5)]
-View(spot)
 
 #Factoring Specimen Type
 spot$Specimen.Type <- as.factor(spot$Specimen.Type)
@@ -87,11 +86,14 @@ Customer Age Distribution
 ```{r}
 ggplot(spot, aes(x =spot$Patient.Age, fill = Patient.Sex)) +
   geom_histogram(color = "black", alpha = 0.5, binwidth = 5) +
-  theme_classic()+
+  scale_fill_manual(values = c("#1F78B4","pink"),
+                   labels = c("Male", "Female"))+
+  theme(panel.background = element_rect(fill = "white"),legend.position = "right")+
   scale_x_continuous(breaks = seq(15, 90, by = 5))+
   labs(title = "Age Distribution of Patients",
        x = "Patient Age",
-       y = "Count")
+       y = "Number of Patients",
+       fill = "")
 ```
 
 
@@ -112,34 +114,40 @@ threshold.1 <-  1.5*(IQR(spot.clean$time.gap1))
 outliers.1 <- spot.clean$time.gap1 < median(spot.clean$time.gap1) - threshold.1 | spot.clean$time.gap1 > median(spot.clean$time.gap1) + threshold.1
 spot.gap.1 <- spot.clean[!outliers.1,]
 
-threshold.2 <-  1.5*(IQR(spot.clean$time.gap2))
-outliers.2 <- spot.clean$time.gap2 < median(spot.clean$time.gap2) - threshold.2 | spot.clean$time.gap2 > median(spot.clean$time.gap2) + threshold.2
-spot.gap.2 <- spot.clean[!outliers.2,]
-
 threshold.3 <-  1.5*(IQR(spot.clean$time.gap3))
 outliers.3 <- spot.clean$time.gap3 < median(spot.clean$time.gap3) - threshold.3 | spot.clean$time.gap3 > median(spot.clean$time.gap3) + threshold.3
 spot.gap.3 <- spot.clean[!outliers.3,]
 
+#spot.gap.3$Specimen.Type <- factor(spot.gap.3$Specimen.Type, labels = c("stool","saliva_3", "adx100", "adx100_4", "dry_tranport_swap",  "whatman903_10","adx100_2"))
+
+
 box.gap.1 <- ggplot(data = spot.gap.1)+
                 geom_boxplot(aes(x = Patient.Sex, y = time.gap1, fill = Patient.Sex), alpha = 0.5)+
+                scale_fill_manual(values = c("pink","#1F78B4"),
+                                  labels = c("Female", "Male"))+
+                theme(panel.background = element_rect(fill = "white"),legend.position = "top")+
                 coord_flip()+
-                theme_classic()
+                labs(x = "Patient Sex",
+                     y = "Time Between Delivered to Sent in",
+                     fill = "",
+                     title = "Time Gap Comparison")
 
-box.gap.2 <- ggplot(data = spot.gap.2)+
-                geom_boxplot(aes(x = Patient.Sex, y = time.gap2, fill = Patient.Sex), alpha = 0.5)+
-                coord_flip()+
-                theme_classic()
 
 box.gap.3 <- ggplot(data = spot.gap.3)+
-                geom_boxplot(aes(x = Patient.Sex, y = time.gap3, fill = Patient.Sex), alpha = 0.5)+
+                geom_boxplot(aes(x = Specimen.Type, y = time.gap3, fill = Specimen.Type), alpha = 0.3)+
+                theme(panel.background = element_rect(fill = "white"),legend.position = "none")+
                 coord_flip()+
-                theme_classic()
+                labs(x = "Specimen Types",
+                     y = "Time Between Received by Test Center and Resulted",
+                     fill = "",
+                     title = "Time Gap Comparison")
+
 
 
 
 box.gap.1
-box.gap.2
 box.gap.3
+
 
 ```
 
@@ -195,7 +203,7 @@ test.rate <- spot.clean%>%
   group_by(Client.ID) %>%
   summarize(Count = n(), resulted_rate = sum(End.Status == "resulted")/n())
 
-ggplot(test.rate, aes(x = reorder(Client.ID,resulted_rate), y = resulted_rate, fill = Client.ID)) +
+ggplot(test.rate, aes(x = reorder(Client.ID,Count), y = resulted_rate, fill = Client.ID)) +
   geom_bar(aes(y = Count),stat = "identity", alpha = 0.5, width = 0.5) +
   geom_text(aes(label = paste0(Count, " / ",round(resulted_rate*100,2), "%"), y = Count + 1), 
             color = "black", fontface = "bold", size = 4, hjust = -0.1) +
@@ -227,14 +235,14 @@ train <- spot.df[train.index,]
 valid <- spot.df[-train.index,]
 
 # random forest
-spot.rf <- randomForest(as.factor(End.Status) ~ ., data = spot.df, ntree = 200, mtry=4, nosize=5, importance=TRUE)
+spot.rf <- randomForest(as.factor(End.Status) ~ .-Patient.ID, data = train, ntree = 200, mtry=4, nosize=5, importance=TRUE)
 
 
 x <- ctree(as.factor(End.Status) ~ Patient.Sex + Patient.Age + Specimen.Type + time.gap1 + time.gap2 + time.gap3, data = spot.df)
 
 plot(x)
 
-varImpPlot(spot.rf, type=1)
+varImpPlot(spot.rf, type=1, main = "Random Forest Variable Importance Plot")
 spot.rf.pred <- predict(spot.rf, valid)
 confusionMatrix(spot.rf.pred, as.factor(valid$End.Status), positive = "resulted")
 
@@ -280,31 +288,11 @@ CM4
 
 library(pROC)
 
-
-roc1 <- roc(predictions1, naive.valid$End.Status, levels = c(0,1))
-roc2 <- roc(predictions2, naive.valid$End.Status, levels = c(0,1))
-roc3 <- roc(predictions3, naive.valid$End.Status, levels = c(0,1))
 roc4 <- roc(predictions4, naive.valid$End.Status, levels = c(0,1))
 
 
-plot(roc1, col = "red", main = "ROC Curves for Naive Bayes Models")
-lines(roc2, col = "blue")
-lines(roc3, col = "green")
-lines(roc4, col = "purple")
-
-
-legend("bottomright", c("Model 1", "Model 2", "Model 3", "Model 4"), col = c("red", "blue", "green", "purple"), lty = 1)
-
-
-auc1 <- round(auc(roc1), 3)
-auc2 <- round(auc(roc2), 3)
-auc3 <- round(auc(roc3), 3)
 auc4 <- round(auc(roc4), 3)
 
-
-cat("AUC for Model 1: ", auc1, "\n")
-cat("AUC for Model 2: ", auc2, "\n")
-cat("AUC for Model 3: ", auc3, "\n")
 cat("AUC for Model 4: ", auc4, "\n")
 
 
@@ -313,29 +301,56 @@ cat("AUC for Model 4: ", auc4, "\n")
 
 
 
-Multilevel Logistic Regression Model
+Logistic Regression Model
 ```{r}
-spot.mix <- spot.clean[,c(1,3,4,5,6,7,9,10)]
-spot.mix$Patient.ID <- as.factor(spot.mix$Patient.ID)
+
+table(spot.mix$End.Status)
+
+spot.mix <- spot.clean[,c(1,3,4,5,7,8,9,10,11)]
 spot.mix$End.Status <- ifelse(spot.mix$End.Status == "resulted", 1, 0)
+spot.mix$Rejection.Reason[spot.km$Rejection.Reason == ""] <- "No Reason"
+spot.mix$Rejection.Reason[spot.km$Rejection.Reason == "qns\\"] <- "qns"
+spot.mix$Rejection.Reason <- as.factor(spot.mix$Rejection.Reason)
 
+spot.mix <- ROSE(as.factor(End.Status) ~ ., data = spot.mix)$data
 
+table(spot.mix$End.Status)
 train.index.m <- sample(c(1:dim(spot.df)[1]), dim(spot.df)[1]*0.6)
 train.mix <- spot.mix[train.index.m,]
 valid.mix <- spot.mix[-train.index.m,]
 
-mixed.model <- glm(End.Status ~  as.factor(Specimen.Type)
+mixed.model <- glmer(End.Status ~  (1|Specimen.Type) + (1|Patient.Sex)
                                   +  time.gap1
                                   +  time.gap2
-                                  +  Patient.Sex
+                                  +  time.gap3
                                   +  Patient.Age,
                      data = train.mix,
                      family = binomial)
 
-plot(mixed.model)
+summary(mixed.model)
 test_predictions <- predict(mixed.model,valid.mix,type = "response")
-test_predictions_binary <- ifelse(test_predictions > 0.85, 1, 0)
-confusionMatrix(table(test_predictions_binary, valid.mix$End.Status), positive = "1")
+
+confusionMatrix(as.factor(ifelse(test_predictions>0.5,1,0)),as.factor(valid.mix$End.Status), positive = "1")
+
+roc3 <- roc(valid.mix$End.Status,test_predictions)
+
+spot.rf.pred <- as.ordered(spot.rf.pred)
+roc.rf <- roc(valid$End.Status,spot.rf.pred)
+
+
+plot(roc3, col = "tomato", main = "ROC Curves Comparison")
+lines(roc4, col = "cornflowerblue")
+lines(roc.rf, col = "gold")
+
+legend("bottomright", c("Multi-Level Regression","Random Forest","Naive Bayes"), col = c("tomato", "gold", "cornflowerblue"), lty = 1)
+
+
+auc.m <- round(auc(roc3), 3)
+auc.n <- round(auc(roc4), 3)
+auc.r <- round(auc(roc.rf), 3)
+cat("AUC for Multi-Level Regression: ", auc.m, "\n")
+cat("AUC for Random Forest: ", auc.r, "\n")
+cat("AUC for Naive Bayes: ", auc.n, "\n")
 ```
 
 
@@ -351,21 +366,45 @@ spot.km$Rejection.Reason[spot.km$Rejection.Reason == "qns\\"] <- "qns"
 
 
 spot.km <- spot.km[,-c(7:11)]
-spot.km$time.gap1[is.na(spot.km$time.gap1)] <- mean(spot.km$time.gap1, na.rm = TRUE)
-spot.km$time.gap2[is.na(spot.km$time.gap2)] <- mean(spot.km$time.gap2, na.rm = TRUE)
-
-table(spot.km$Rejection.Reason)
+#spot.km$time.gap1[is.na(spot.km$time.gap1)] <- mean(spot.km$time.gap1, na.rm = TRUE)
+#spot.km$time.gap2[is.na(spot.km$time.gap2)] <- mean(spot.km$time.gap2, na.rm = TRUE)
 
 
 
-rej_reason_freq <- as.data.frame(table(spot.km$Rejection.Reason))
-colnames(rej_reason_freq) <- c("Reject Reason","Count")
 
-ggplot(rej_reason_freq, aes(x = reorder(`Reject Reason`,Count), y = Count, fill = `Reject Reason`)) + 
-  geom_bar(stat = "identity", alpha = 0.5) +
-  labs(x = "Rejection Reason", y = "Count") +
-  theme_classic()+
-  coord_flip()
+spot.km.1 <- spot.km%>%
+  subset(spot.km$Rejection.Reason != "No Reason")
+
+table(spot.km.1$Rejection.Reason)
+
+ggplot(spot.km.1, aes(x =spot.km.1$Patient.Age, fill = Patient.Sex)) +
+  geom_density(alpha = 0.2) +
+  scale_fill_manual(values = c("#1F78B4","pink"),
+                   labels = c("Male", "Female"))+
+  theme(panel.background = element_rect(fill = "white"),legend.position = "right")+
+  scale_x_continuous(breaks = seq(15, 90, by = 10))+
+  facet_wrap(~Rejection.Reason)+
+  labs(title = "Proportion of Patients",
+       x = "Patient Age",
+       y = "Number of Patients",
+       fill = "")
+
+
+table(spot.km.1$Specimen.Type)
+spot.km.2 <- spot.km.1 %>% 
+                  group_by(Rejection.Reason,Specimen.Type) %>%
+                      summarise(count = n()) %>% 
+                      mutate(ratio = count / sum(count))
+
+#spot.km.2$Specimen.Type <- factor(spot.km.2$Specimen.Type, labels = c("adx100_2","adx100_4","adx100"))
+
+ggplot(data = spot.km.2, aes(x = Rejection.Reason, y = ratio, fill=Rejection.Reason)) +
+  geom_bar(stat = "identity", color = 'black')+
+  geom_text(aes(label = paste0(round(ratio*100), "%"), y = ratio),vjust = -1)+
+  ylim(0,1)+
+  facet_wrap(~Specimen.Type)+
+  theme(panel.background = element_rect(fill = "white"),legend.position = "none")+
+  scale_fill_brewer(palette="Paired")
 ```
 
 
